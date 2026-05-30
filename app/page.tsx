@@ -1,17 +1,43 @@
-import YoutubeCalendar from "./components/youtubecalendar";
+import { createClient } from "@supabase/supabase-js";
+import Dashboard, { ExpenseRow, OrderRow } from "./components/dashboard";
 
-export default function HomePage() {
-	return (
-		<>
-			<head>
-				<title>Vtuber Tracker</title>
-			</head>
-			<main className="flex flex-col items-center w-full">
-				<h1>Soma Haishin Calendar</h1>
-				<div className="w-full items-center">
-					<YoutubeCalendar />
-				</div>
-			</main>
-		</>
-	);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+// ── Data fetching ─────────────────────────────────────────────────────────────
+
+async function fetchExpenses(): Promise<ExpenseRow[]> {
+	const { data, error } = await supabase
+		.from("expenses")
+		.select("month, amount, budget")
+		.order("month_date", { ascending: true });
+
+	if (error) {
+		console.error("[expenses]", error.message);
+		return [];
+	}
+
+	return (data ?? []) as ExpenseRow[];
+}
+
+async function fetchOrders(): Promise<OrderRow[]> {
+	const { data, error } = await supabase
+		.from("orders")
+		.select("id, item, shop_name, currency, amount, status, created_at")
+		.order("created_at", { ascending: false })
+		.limit(50);
+
+	if (error) {
+		console.error("[orders]", error.message);
+		return [];
+	}
+
+	return (data ?? []) as OrderRow[];
+}
+
+// ── Page (React Server Component) ────────────────────────────────────────────
+
+export default async function Page() {
+	const [expenses, orders] = await Promise.all([fetchExpenses(), fetchOrders()]);
+
+	return <Dashboard expenses={expenses} orders={orders} />;
 }

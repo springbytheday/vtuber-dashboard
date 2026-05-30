@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Unbounded, Albert_Sans, Murecho } from "next/font/google";
 import "./globals.css";
+import Sidebar from "./components/sidebar";
 
 const unbounded = Unbounded({
 	variable: "--font-unbounded",
@@ -28,11 +29,15 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html
-			lang="en"
-			className={`${unbounded.variable} ${albertsans.variable}${murecho.variable} h-full antialiased`}
-		>
-			<body className="min-h-full flex flex-col">{children}</body>
+		<html lang="en">
+			<body>
+				<div
+					className={`${unbounded.variable} ${albertsans.variable}${murecho.variable} flex h-screen bg-[#0e0e12] text-[#d4d4d8] overflow-hidden`}
+				>
+					<Sidebar />
+					<div className="flex-1 flex flex-col overflow-hidden">{children}</div>
+				</div>
+			</body>
 		</html>
 	);
 }
