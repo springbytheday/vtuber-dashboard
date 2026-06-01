@@ -6,12 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-// Matches the `events` table:
-//   id         uuid primary key default gen_random_uuid()
-//   title      text        not null
-//   start_at   timestamptz not null
-//   end_at     timestamptz not null
-//   created_at timestamptz not null default now()
 export interface EventRow {
 	id: string;
 	title: string;
@@ -31,10 +25,8 @@ interface FormState {
 	endTime: string;
 }
 
-// ── Supabase (client-side, public anon key only) ──────────────────────────────
-// Add to .env.local:
-//   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-//   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+// ── Supabase ──────────────────────────────────────────────────────────────────
+
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -74,18 +66,12 @@ function formatTime(isoString: string): string {
 	return new Date(isoString).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDateTimeLocal(isoString: string): string {
-	// Converts ISO to the format datetime-local input expects: YYYY-MM-DDTHH:MM
-	return isoString.slice(0, 16);
-}
-
 function getEventsForDay(events: EventRow[], year: number, month: number, day: number): EventRow[] {
 	const dayStart = new Date(year, month, day, 0, 0, 0).getTime();
 	const dayEnd = new Date(year, month, day, 23, 59, 59).getTime();
 	return events.filter((e) => {
 		const start = new Date(e.start_at).getTime();
 		const end = new Date(e.end_at).getTime();
-		// Event overlaps with this day if it starts before day ends and ends after day starts
 		return start <= dayEnd && end >= dayStart;
 	});
 }
@@ -95,13 +81,7 @@ function hasEvents(events: EventRow[], year: number, month: number, day: number)
 }
 
 function defaultForm(dateStr: string): FormState {
-	return {
-		title: "",
-		startDate: dateStr,
-		startTime: "09:00",
-		endDate: dateStr,
-		endTime: "10:00",
-	};
+	return { title: "", startDate: dateStr, startTime: "09:00", endDate: dateStr, endTime: "10:00" };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -173,7 +153,6 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 			return;
 		}
 
-		// Optimistic update
 		const optimisticId = `optimistic-${Date.now()}`;
 		const optimisticEvent: EventRow = { id: optimisticId, title: form.title.trim(), start_at, end_at };
 		setEvents((prev) => [...prev, optimisticEvent]);
@@ -187,69 +166,64 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 				.single();
 
 			if (sbError || !data) {
-				// Roll back optimistic update
 				setEvents((prev) => prev.filter((e) => e.id !== optimisticId));
 				setError(sbError?.message ?? "Failed to save event.");
 				setShowModal(true);
 				return;
 			}
-
-			// Replace optimistic entry with real one
 			setEvents((prev) => prev.map((e) => (e.id === optimisticId ? (data as EventRow) : e)));
 		});
 	};
 
 	const handleDeleteEvent = (id: string): void => {
-		// Optimistic removal
 		setEvents((prev) => prev.filter((e) => e.id !== id));
-
 		startTransition(async () => {
 			const { error: sbError } = await supabase.from("events").delete().eq("id", id);
-			if (sbError) {
-				// Can't easily restore without refetching — just log
-				console.error("[delete event]", sbError.message);
-			}
+			if (sbError) console.error("[delete event]", sbError.message);
 		});
 	};
 
 	const selectedEvents = selectedDay ? getEventsForDay(events, calYear, calMonth, selectedDay) : [];
 
+	const inputClass =
+		"w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 placeholder-stone-300 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-all";
+
 	return (
-		<div className="col-span-2 bg-[#13131a] border border-[#1e1e26] p-5">
+		<div className="col-span-2 bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
 			{/* Header */}
 			<div className="flex items-center justify-between mb-4">
 				<div>
-					<p className="text-[10px] uppercase tracking-widest text-[#555]">Schedule</p>
-					<p className="text-sm font-bold text-white mt-0.5">
+					<p className="text-xs text-stone-400 font-medium">Schedule</p>
+					<p className="text-base font-bold text-stone-800 mt-0.5">
 						{MONTHS[calMonth]} {calYear}
 					</p>
 				</div>
 				<div className="flex items-center gap-1">
 					<button
 						onClick={prevMonth}
-						className="p-1.5 hover:bg-white/5 text-[#555] hover:text-[#aaa] transition-colors"
+						className="p-1.5 rounded-lg hover:bg-stone-50 text-stone-300 hover:text-stone-500 transition-colors"
 					>
-						<ChevronLeft size={13} />
+						<ChevronLeft size={15} />
 					</button>
 					<button
 						onClick={nextMonth}
-						className="p-1.5 hover:bg-white/5 text-[#555] hover:text-[#aaa] transition-colors"
+						className="p-1.5 rounded-lg hover:bg-stone-50 text-stone-300 hover:text-stone-500 transition-colors"
 					>
-						<ChevronRight size={13} />
+						<ChevronRight size={15} />
 					</button>
 					<button
 						onClick={openModal}
-						className="ml-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-[#e8ff47]/10 border border-[#e8ff47]/30 text-[#e8ff47] text-[10px] uppercase tracking-wider hover:bg-[#e8ff47]/20 transition-colors"
+						className="ml-1.5 flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-400 text-xs font-semibold rounded-xl hover:bg-rose-100 transition-colors"
 					>
-						<Plus size={11} strokeWidth={2.5} /> Add
+						<Plus size={12} strokeWidth={2.5} /> Add
 					</button>
 				</div>
 			</div>
 
 			{/* Day headers */}
-			<div className="grid grid-cols-7 mb-2">
+			<div className="grid grid-cols-7 mb-1">
 				{DAYS.map((d) => (
-					<div key={d} className="text-center text-[10px] text-[#444] uppercase tracking-wider py-1">
+					<div key={d} className="text-center text-[11px] text-stone-300 font-semibold py-1">
 						{d}
 					</div>
 				))}
@@ -262,45 +236,48 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 						{d !== null ? (
 							<button
 								onClick={() => setSelectedDay(d)}
-								className={`w-7 h-7 text-[11px] flex items-center justify-center transition-all duration-100 relative ${
+								className={`w-8 h-8 text-xs rounded-xl flex items-center justify-center transition-all duration-150 relative font-medium ${
 									isToday(d)
-										? "bg-[#e8ff47] text-[#0e0e12] font-bold"
+										? "bg-rose-400 text-white font-bold shadow-sm"
 										: selectedDay === d
-											? "bg-white/10 text-white"
-											: "text-[#888] hover:text-white hover:bg-white/5"
+											? "bg-rose-50 text-rose-500"
+											: "text-stone-500 hover:bg-stone-50 hover:text-stone-700"
 								}`}
 							>
 								{d}
 								{hasEvents(events, calYear, calMonth, d) && !isToday(d) && (
-									<span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#a78bfa]" />
+									<span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-400" />
 								)}
 							</button>
 						) : (
-							<div className="w-7 h-7" />
+							<div className="w-8 h-8" />
 						)}
 					</div>
 				))}
 			</div>
 
 			{/* Selected day events */}
-			<div className="mt-4 pt-4 border-t border-[#1e1e26] space-y-2 min-h-[48px]">
+			<div className="mt-4 pt-4 border-t border-stone-50 space-y-2 min-h-[52px]">
 				{selectedDay === null ? (
-					<p className="text-[11px] text-[#444]">Select a day to view events</p>
+					<p className="text-xs text-stone-300">Select a day to view events</p>
 				) : selectedEvents.length === 0 ? (
-					<div className="flex items-center gap-2 text-[11px] text-[#444]">
-						<Clock size={11} />
+					<div className="flex items-center gap-2 text-xs text-stone-300">
+						<Clock size={12} />
 						<span>
 							{MONTHS[calMonth]} {selectedDay} — no events
 						</span>
 					</div>
 				) : (
 					selectedEvents.map((ev) => (
-						<div key={ev.id} className="flex items-center justify-between group">
+						<div
+							key={ev.id}
+							className="flex items-center justify-between group bg-violet-50 rounded-xl px-3 py-2"
+						>
 							<div className="flex items-start gap-2">
-								<span className="mt-0.5 w-1.5 h-1.5 rounded-full bg-[#a78bfa] shrink-0" />
+								<span className="mt-1 w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
 								<div>
-									<p className="text-[11px] text-[#ccc]">{ev.title}</p>
-									<p className="text-[10px] text-[#555]">
+									<p className="text-xs font-semibold text-stone-700">{ev.title}</p>
+									<p className="text-[10px] text-stone-400">
 										{formatTime(ev.start_at)} – {formatTime(ev.end_at)}
 									</p>
 								</div>
@@ -308,7 +285,7 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 							<button
 								onClick={() => handleDeleteEvent(ev.id)}
 								disabled={isPending}
-								className="opacity-0 group-hover:opacity-100 p-1 text-[#555] hover:text-red-400 transition-all"
+								className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-stone-300 hover:text-red-400 hover:bg-red-50 transition-all"
 							>
 								<Trash2 size={11} />
 							</button>
@@ -319,62 +296,62 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 
 			{/* ── Add Event Modal ── */}
 			{showModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
 					<div
-						className="bg-[#13131a] border border-[#2a2a32] p-6 w-80 space-y-4"
-						style={{ fontFamily: "'IBM Plex Mono', 'Courier New', monospace" }}
+						className="bg-white rounded-3xl shadow-2xl p-6 w-84 space-y-4 border border-stone-100 font-murecho"
+						style={{ width: "340px" }}
 					>
 						{/* Modal header */}
 						<div className="flex items-center justify-between">
-							<p className="text-xs font-bold text-white uppercase tracking-widest">New Event</p>
-							<button onClick={() => setShowModal(false)} className="text-[#555] hover:text-[#aaa]">
-								<X size={14} />
+							<div>
+								<p className="text-base font-bold text-stone-800 font-unbounded">New Event 🗓️</p>
+								<p className="text-xs text-stone-400 mt-0.5">Add it to your schedule</p>
+							</div>
+							<button
+								onClick={() => setShowModal(false)}
+								className="p-1.5 rounded-xl hover:bg-stone-50 text-stone-300 hover:text-stone-500 transition-colors"
+							>
+								<X size={15} />
 							</button>
 						</div>
 
 						{/* Error */}
 						{error && (
-							<p className="text-[11px] text-red-400 border border-red-500/30 bg-red-500/10 px-3 py-1.5">
+							<p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
 								{error}
 							</p>
 						)}
 
 						{/* Title */}
 						<div>
-							<label className="block text-[10px] uppercase tracking-widest text-[#555] mb-1.5">
-								Title
-							</label>
+							<label className="block text-xs font-semibold text-stone-500 mb-1.5">Title</label>
 							<input
 								type="text"
 								value={form.title}
 								onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-								placeholder="Event title"
-								className="w-full bg-[#0e0e12] border border-[#2a2a32] px-3 py-2 text-xs text-[#ccc] placeholder-[#444] outline-none focus:border-[#e8ff47]/50 transition-colors"
+								placeholder="What's happening?"
+								className={inputClass}
 							/>
 						</div>
 
 						{/* Start */}
 						<div className="grid grid-cols-2 gap-2">
 							<div>
-								<label className="block text-[10px] uppercase tracking-widest text-[#555] mb-1.5">
-									Start date
-								</label>
+								<label className="block text-xs font-semibold text-stone-500 mb-1.5">Start date</label>
 								<input
 									type="date"
 									value={form.startDate}
 									onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-									className="w-full bg-[#0e0e12] border border-[#2a2a32] px-2 py-2 text-xs text-[#ccc] outline-none focus:border-[#e8ff47]/50 transition-colors"
+									className={inputClass}
 								/>
 							</div>
 							<div>
-								<label className="block text-[10px] uppercase tracking-widest text-[#555] mb-1.5">
-									Start time
-								</label>
+								<label className="block text-xs font-semibold text-stone-500 mb-1.5">Start time</label>
 								<input
 									type="time"
 									value={form.startTime}
 									onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-									className="w-full bg-[#0e0e12] border border-[#2a2a32] px-2 py-2 text-xs text-[#ccc] outline-none focus:border-[#e8ff47]/50 transition-colors"
+									className={inputClass}
 								/>
 							</div>
 						</div>
@@ -382,25 +359,21 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 						{/* End */}
 						<div className="grid grid-cols-2 gap-2">
 							<div>
-								<label className="block text-[10px] uppercase tracking-widest text-[#555] mb-1.5">
-									End date
-								</label>
+								<label className="block text-xs font-semibold text-stone-500 mb-1.5">End date</label>
 								<input
 									type="date"
 									value={form.endDate}
 									onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-									className="w-full bg-[#0e0e12] border border-[#2a2a32] px-2 py-2 text-xs text-[#ccc] outline-none focus:border-[#e8ff47]/50 transition-colors"
+									className={inputClass}
 								/>
 							</div>
 							<div>
-								<label className="block text-[10px] uppercase tracking-widest text-[#555] mb-1.5">
-									End time
-								</label>
+								<label className="block text-xs font-semibold text-stone-500 mb-1.5">End time</label>
 								<input
 									type="time"
 									value={form.endTime}
 									onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-									className="w-full bg-[#0e0e12] border border-[#2a2a32] px-2 py-2 text-xs text-[#ccc] outline-none focus:border-[#e8ff47]/50 transition-colors"
+									className={inputClass}
 								/>
 							</div>
 						</div>
@@ -409,21 +382,21 @@ export default function Calendar({ initialEvents }: CalendarProps) {
 						<div className="flex gap-2 pt-1">
 							<button
 								onClick={() => setShowModal(false)}
-								className="flex-1 py-2 text-[10px] uppercase tracking-widest border border-[#2a2a32] text-[#555] hover:border-[#444] hover:text-[#888] transition-colors"
+								className="flex-1 py-2.5 text-sm font-medium rounded-xl bg-stone-50 text-stone-400 hover:bg-stone-100 hover:text-stone-600 transition-colors"
 							>
 								Cancel
 							</button>
 							<button
 								onClick={handleAddEvent}
 								disabled={isPending}
-								className="flex-1 py-2 text-[10px] uppercase tracking-widest bg-[#e8ff47] text-[#0e0e12] font-bold hover:bg-[#d4f000] transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+								className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-rose-400 text-white hover:bg-rose-500 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-sm"
 							>
 								{isPending ? (
 									<>
-										<Loader2 size={11} className="animate-spin" /> Saving
+										<Loader2 size={13} className="animate-spin" /> Saving…
 									</>
 								) : (
-									"Save"
+									"Save event"
 								)}
 							</button>
 						</div>
