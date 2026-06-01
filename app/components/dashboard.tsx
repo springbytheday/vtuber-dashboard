@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
 	LayoutDashboard,
 	BarChart3,
-	Users,
+	ListPlus,
 	ShoppingCart,
 	Settings,
 	Bell,
@@ -14,7 +14,6 @@ import {
 	ChevronRight,
 	ChevronLeft,
 	Package,
-	Zap,
 	MoreHorizontal,
 	GripVertical,
 	Clock,
@@ -26,7 +25,7 @@ import {
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, TooltipProps } from "recharts";
 import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
-import YoutubeCalendar from "./youtubecalendar";
+import Calendar, { EventRow } from "./calendar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,6 +94,7 @@ interface StatCard {
 interface DashboardProps {
 	expenses: ExpenseRow[];
 	orders: OrderRow[];
+	events: EventRow[];
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -104,15 +104,6 @@ const KANBAN_COLUMNS: Omit<KanbanColumn, "cards">[] = [
 	{ id: "shipped_dom", label: "Shipped Domestically", color: "#38bdf8" },
 	{ id: "shipped_intl", label: "Shipped Internationally", color: "#e8ff47" },
 	{ id: "received", label: "Received", color: "#4ade80" },
-];
-
-const navItems: NavItem[] = [
-	{ icon: LayoutDashboard, label: "Dashboard" },
-	{ icon: BarChart3, label: "Analytics" },
-	{ icon: Users, label: "Customers" },
-	{ icon: ShoppingCart, label: "Orders" },
-	{ icon: Package, label: "Products" },
-	{ icon: Settings, label: "Settings" },
 ];
 
 const statCards: StatCard[] = [
@@ -133,6 +124,7 @@ function formatRelativeTime(isoString: string): string {
 }
 
 function formatCurrency(amount: number, currency: string): string {
+	console.log("inside formatCurrency");
 	return new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: currency,
@@ -214,7 +206,7 @@ function SkeletonBlock({ className }: { className?: string }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Dashboard({ expenses, orders }: DashboardProps) {
+export default function Dashboard({ expenses, orders, events }: DashboardProps) {
 	const [activeNav, setActiveNav] = useState<string>("Dashboard");
 	const [searchVal, setSearchVal] = useState<string>("");
 
@@ -286,16 +278,14 @@ export default function Dashboard({ expenses, orders }: DashboardProps) {
 
 					{/* ── Row 1: Calendar + Kanban ── */}
 					<div className="grid grid-cols-5 gap-4">
-						{/* Calendar (static) */}
-						<div className="col-span-2 bg-[#13131a] border border-[#1e1e26] p-5">
-							<YoutubeCalendar />
-						</div>
+						{/* Calendar*/}
+						<Calendar initialEvents={events} />
 						{/* Kanban (Supabase) */}
 						<div className="col-span-3 bg-[#13131a] border border-[#1e1e26] p-5">
 							<div className="flex items-center justify-between mb-4">
 								<div>
-									<p className="text-[10px] uppercase tracking-widest text-[#555]">Pipeline</p>
-									<p className="text-sm font-bold text-white mt-0.5">Order Status</p>
+									<p className="text-[10px] uppercase tracking-widest text-[#555]">Orders</p>
+									<p className="text-sm font-bold text-white mt-0.5">Status</p>
 								</div>
 								<div className="flex items-center gap-1.5 text-[10px] text-[#555]">
 									<Layers size={11} />

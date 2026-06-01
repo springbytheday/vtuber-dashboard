@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BarChart3, Users, ShoppingCart, Settings, Package, Zap, LucideIcon } from "lucide-react";
+import { LayoutDashboard, Calendar, ListPlus, ShoppingCart, Settings, Package, Grape, LucideIcon } from "lucide-react";
 
 interface NavItem {
 	icon: LucideIcon;
@@ -12,10 +12,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
 	{ icon: LayoutDashboard, label: "Dashboard", href: "/" },
-	{ icon: BarChart3, label: "Analytics", href: "/analytics" },
-	{ icon: Users, label: "Customers", href: "/customers" },
-	{ icon: ShoppingCart, label: "Orders", href: "/orders" },
-	{ icon: Package, label: "Products", href: "/products" },
+	{ icon: Calendar, label: "Stream Calendar", href: "/streamcalendar" },
+	{ icon: ListPlus, label: "Collection", href: "/collection" },
+	{ icon: ShoppingCart, label: "Link3", href: "/orders" },
+	{ icon: Package, label: "Link4", href: "/products" },
 	{ icon: Settings, label: "Settings", href: "/settings" },
 ];
 
@@ -28,10 +28,10 @@ export default function Sidebar() {
 		<aside className="w-56 border-r border-[#1e1e26] flex flex-col shrink-0">
 			{/* Logo */}
 			<div className="px-5 py-5 border-b border-[#1e1e26] flex items-center gap-2">
-				<div className="w-6 h-6 bg-[#e8ff47] flex items-center justify-center">
-					<Zap size={14} color="#0e0e12" strokeWidth={3} />
+				<div className="w-6 h-6  flex items-center justify-center">
+					<Grape size={14} color="#bc2dd8" strokeWidth={3} />
 				</div>
-				<span className="text-sm font-bold tracking-widest text-white uppercase">Voltr</span>
+				<span className="text-sm font-bold tracking-widest text-white uppercase">Tracker</span>
 			</div>
 
 			{/* Nav */}
